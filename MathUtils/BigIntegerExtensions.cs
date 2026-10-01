@@ -146,19 +146,21 @@ public static class BigIntegerExtensions {
         /// </remarks>
         public BigInteger ModExp(BigInteger e, BigInteger n) {
             BigInteger output = BigInteger.One;
-            if (e.Sign < BigInteger.Zero)
+            BigInteger toMultiplyBy = a.Mod(n);
+
+            if (e.Sign < 0)
             {
                 e *= new BigInteger(-1);
-                a = a.ModInverse(n);
+                toMultiplyBy = a.ModInverse(n);
             }
 
             while (e > BigInteger.Zero)
             {
                 if ((e & BigInteger.One) != BigInteger.Zero)
                 {
-                    output = output.ModMultiply(a, n);
+                    output = output.ModMultiply(toMultiplyBy, n);
                 }
-                a = a.ModMultiply(a, n);
+                toMultiplyBy = toMultiplyBy.ModMultiply(toMultiplyBy, n);
                 e >>= 1;
             }
             return output;

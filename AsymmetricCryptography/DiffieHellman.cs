@@ -25,18 +25,19 @@ public class DiffieHellman {
 
     /// <summary>The smallest modulus bit length this implementation will generate.</summary>
     public const int MinimumBitLength = 32;
+    private Parameters Params;
+    private BigInteger PrivateValue;
+    private BigInteger PublicValue;
 
     #endregion
 
     #region Key retrieval
 
     /// <summary>Returns the parameters held by this instance.</summary>
-    public Parameters GetParameters() =>
-            throw new NotImplementedException();
+    public Parameters GetParameters() => Params;
 
     /// <summary>Returns the public key held by this instance.</summary>
-    public BigInteger GetPublicValue() =>
-            throw new NotImplementedException();
+    public BigInteger GetPublicValue() => PublicValue;
 
     #endregion
 
@@ -49,7 +50,20 @@ public class DiffieHellman {
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="bitLength"/> is below <see cref="MinimumBitLength"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="bitLength"/> is odd.</exception>
     public DiffieHellman(int bitLength) {
-        throw new NotImplementedException();
+        if (bitLength < MinimumBitLength) throw new ArgumentOutOfRangeException();
+        if ((bitLength & 1) == 1) throw new ArgumentException();
+
+        (BigInteger p, BigInteger q) = AsymmetricUtils.GetRandomSafePrime(bitLength);
+        BigInteger g;
+        while (true)
+        {
+            g = AsymmetricUtils.GetRandom(new BigInteger(2), p - new BigInteger(2));
+            if (g.ModExp(q, p) == BigInteger.One) break;
+        }
+        Params = new Parameters(p, g, q);
+
+        PrivateValue = AsymmetricUtils.GetRandom(BigInteger.One, q - BigInteger.One);
+        PublicValue = g.ModExp(PrivateValue, p);
     }
 
     /// <summary>
@@ -57,7 +71,13 @@ public class DiffieHellman {
     /// </summary>
     /// <param name="parameters">Parameters to use when generating the key pair.</param>
     public DiffieHellman(Parameters parameters) {
-        throw new NotImplementedException();
+        if (parameters.Modulus != (parameters.Order << 1) + BigInteger.One) throw new ArgumentException();
+        if (parameters.Generator.ModExp(parameters.Order, parameters.Modulus) != BigInteger.One) throw new ArgumentException();
+        if (parameters.Generator == BigInteger.One || parameters.Generator == parameters.Modulus - BigInteger.One) throw new ArgumentException();
+
+        Params = parameters;
+        PrivateValue = AsymmetricUtils.GetRandom(BigInteger.One, parameters.Order - BigInteger.One);
+        PublicValue = parameters.Generator.ModExp(PrivateValue, parameters.Modulus);
     }
 
     #endregion
@@ -72,7 +92,9 @@ public class DiffieHellman {
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="receivedPublicValue"/> is not within the group.</exception>
     public BigInteger ComputeSharedValue(BigInteger receivedPublicValue) {
-        throw new NotImplementedException();
+        if (receivedPublicValue <= BigInteger.One) throw new ArgumentOutOfRangeException();
+        if (receivedPublicValue.ModExp(Params.Order, Params.Modulus) != BigInteger.One) throw new ArgumentOutOfRangeException();
+        return receivedPublicValue.ModExp(PrivateValue, Params.Modulus);
     }
 
     /// <summary>
@@ -88,7 +110,7 @@ public class DiffieHellman {
     /// as the hash algorithm.
     /// </remarks>
     public byte[] ComputeSharedKey(BigInteger receivedPublicValue, int byteCount) {
-        throw new NotImplementedException();
+        return HKDF.DeriveKey(HashAlgorithmName.SHA512, ComputeSharedValue(receivedPublicValue).ToByteArray(((int) Params.Order.GetBitLength() + 7) / 8), byteCount);
     }
 
     #endregion

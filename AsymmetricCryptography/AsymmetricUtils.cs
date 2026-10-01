@@ -31,7 +31,7 @@ internal static class AsymmetricUtils {
         /// <remarks>Do not use the modulus operation at all in your implementation.</remarks>
         public static BigInteger GetRandom(BigInteger min, BigInteger max) {
             // Validate inputs
-            if (min < 0 || max < 0 || min > max) throw new ArgumentException();
+            if (min < 0 || max <= 0 || min >= max) throw new ArgumentException();
 
             // Get difference's mask and byte array
             BigInteger diff = max - min;

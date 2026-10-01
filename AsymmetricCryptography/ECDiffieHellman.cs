@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Security.Cryptography;
-
+using MathUtils;
 using ECCurve = MathUtils.ECCurve;
 using ECPoint = MathUtils.ECPoint;
 using Parameters = AsymmetricCryptography.ECParameters.Parameters;
@@ -29,12 +29,10 @@ public class ECDiffieHellman {
     #region Key retrieval
 
     /// <summary>Returns the parameters held by this instance.</summary>
-    public Parameters GetParameters() =>
-            throw new NotImplementedException();
+    public Parameters GetParameters() => parameters;
 
     /// <summary>Returns the public key held by this instance.</summary>
-    public ECPoint GetPublicValue() =>
-            throw new NotImplementedException();
+    public ECPoint GetPublicValue() => publicKey;
 
     #endregion
 
@@ -45,7 +43,13 @@ public class ECDiffieHellman {
     /// </summary>
     /// <param name="parameters">Parameters to use when generating the key pair.</param>
     public ECDiffieHellman(Parameters parameters) {
-        throw new NotImplementedException();
+        if (parameters.Curve.P < 5) throw new ArgumentException();
+        if (parameters.Generator == ECPoint.PointAtInfinity) throw new ArgumentException();
+        if (parameters.Order * parameters.Generator != ECPoint.PointAtInfinity) throw new ArgumentException();
+
+        this.parameters = parameters;
+        privateKey = AsymmetricUtils.GetRandom(BigInteger.One, parameters.Order - BigInteger.One);
+        publicKey = privateKey * parameters.Generator;
     }
 
     #endregion
@@ -60,7 +64,18 @@ public class ECDiffieHellman {
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="receivedPublicPoint"/> is not within the group.</exception>
     public ECPoint ComputeSharedPoint(ECPoint receivedPublicPoint) {
-        throw new NotImplementedException();
+        var x = receivedPublicPoint.X;
+        var y = receivedPublicPoint.Y;
+        var p = parameters.Curve.P;
+        var a = parameters.Curve.A;
+        var b = parameters.Curve.B;
+        var ySquared = y.ModMultiply(y, p);
+        var ySquaredCalculated = x.ModExp(new BigInteger(3), p).ModAdd(a.ModMultiply(x, p), p).ModAdd(b, p);
+        
+        if (ySquared != ySquaredCalculated) throw new ArgumentOutOfRangeException();
+        if (parameters.Order * receivedPublicPoint != ECPoint.PointAtInfinity) throw new ArgumentOutOfRangeException();
+
+        return privateKey * receivedPublicPoint;
     }
 
     /// <summary>
@@ -76,7 +91,20 @@ public class ECDiffieHellman {
     /// as the hash algorithm.
     /// </remarks>
     public byte[] ComputeSharedKey(ECPoint receivedPublicPoint, int byteCount) {
-        throw new NotImplementedException();
+        if (byteCount <= 0) throw new ArgumentOutOfRangeException();
+
+        var rawShared = ComputeSharedPoint(receivedPublicPoint);
+        var byteLength = ((int) parameters.Curve.P.GetBitLength() + 7) / 8;
+        var rawSharedBytes = rawShared.X.ToByteArray(isUnsigned: true, isBigEndian: true);
+
+        // Left-pad to the same fixed length the implementation uses.
+        if (rawSharedBytes.Length < byteLength) {
+            var padded = new byte[byteLength];
+            Array.Copy(rawSharedBytes, 0, padded, byteLength - rawSharedBytes.Length, rawSharedBytes.Length);
+            rawSharedBytes = padded;
+        }
+
+        return HKDF.DeriveKey(HashAlgorithmName.SHA512, rawSharedBytes, byteCount);
     }
 
     #endregion
