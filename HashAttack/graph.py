@@ -45,30 +45,34 @@ def load_data():
     return (all_preimage_vals, all_collision_vals)
 
 
-def main():
-    verify_context()
-    preimage_vals, collision_vals = load_data()
-    
-    preimage_means = [np.mean(x) for x in preimage_vals]
-    best_fit = np.polyfit(BIT_SIZES, np.log(preimage_means), 1)
+def make_graph(data, attack_type):
+    data_means = [np.mean(x) for x in data]
+    best_fit = np.polyfit(BIT_SIZES, np.log(data_means), 1)
     best_slope = best_fit[0]
     best_base = np.exp(best_fit[1])
     preds = [best_base*np.exp(best_slope*bit_size) for bit_size in BIT_SIZES]
     best_str = f"{best_base:.3f}e^({best_slope:.3f}x)"
 
-    fake_x = [i+1 for i in range(len(preimage_vals))]
+    fake_x = [i+1 for i in range(len(data))]
 
     plt.figure(figsize=(10, 6))
-    plt.title("Hash Size vs. Preimage Attack Iterations")
+    plt.title(f"Hash Size vs. {attack_type} Attack Iterations")
     plt.xlabel("Hash Size (bits)")
-    plt.ylabel("Preimage Attack Iterations")
+    plt.ylabel(f"{attack_type} Attack Iterations")
     plt.yscale('log')
-    plt.boxplot(preimage_vals)
+    plt.boxplot(data)
     plt.xticks(fake_x, BIT_SIZES)
-    plt.plot(fake_x, preimage_means, label="Actual")
-    plt.plot(fake_x, preds, label=f"Prediction {best_str}")
+    plt.plot(fake_x, data_means, label="Actual", c='c')
+    plt.plot(fake_x, preds, label=f"Prediction {best_str}", c='m')
     plt.legend()
-    plt.show()
+    plt.savefig(f"{attack_type.lower()}.png", dpi=300)
+
+
+def main():
+    verify_context()
+    preimage_vals, collision_vals = load_data()
+    make_graph(preimage_vals, "Preimage")
+    make_graph(collision_vals, "Collision")
 
 
 if __name__ == "__main__":
