@@ -64,6 +64,13 @@ def make_graph(data, attack_type):
     preds = [best_base*np.exp(best_slope*bit_size) for bit_size in BIT_SIZES]
     best_str = f"{best_base:.3f}e^({best_slope:.3f}x)"
 
+    expected_params = ECI_PARAMS if attack_type == "Collision" else EPI_PARAMS
+    print(f"{attack_type} Percent Errors:")
+    if expected_params[0] != 0:
+        print(f"\tSlope: {math.fabs(best_fit[0] - expected_params[0]) / expected_params[0] * 100:.3f}%")
+    if expected_params[1] != 0:
+        print(f"\tY-Offset: {math.fabs(math.exp(best_fit[1]) - math.exp(expected_params[1])) / math.exp(expected_params[1]) * 100:.3f}%")    
+
     fake_x = [i+1 for i in range(len(data))]
 
     plt.figure(figsize=(10, 6))
