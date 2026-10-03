@@ -66,10 +66,8 @@ def make_graph(data, attack_type):
 
     expected_params = ECI_PARAMS if attack_type == "Collision" else EPI_PARAMS
     print(f"{attack_type} Percent Errors:")
-    if expected_params[0] != 0:
-        print(f"\tSlope: {math.fabs(best_fit[0] - expected_params[0]) / expected_params[0] * 100:.3f}%")
-    if expected_params[1] != 0:
-        print(f"\tY-Offset: {math.fabs(math.exp(best_fit[1]) - math.exp(expected_params[1])) / math.exp(expected_params[1]) * 100:.3f}%")    
+    print(f"\tSlope: {math.fabs(best_fit[0] - expected_params[0]) / expected_params[0] * 100:.3f}%")
+    print(f"\tY-Offset: {math.fabs(math.exp(best_fit[1]) - math.exp(expected_params[1])) / math.exp(expected_params[1]) * 100:.3f}%")    
 
     fake_x = [i+1 for i in range(len(data))]
 
