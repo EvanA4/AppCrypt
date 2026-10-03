@@ -56,14 +56,14 @@ def make_graph(data, attack_type):
     fake_x = [i+1 for i in range(len(data))]
 
     plt.figure(figsize=(10, 6))
-    plt.title(f"Hash Size vs. {attack_type} Attack Iterations")
+    plt.title(f"{attack_type} Attack Iterations vs. Hash Size")
     plt.xlabel("Hash Size (bits)")
     plt.ylabel(f"{attack_type} Attack Iterations")
     plt.yscale('log')
     plt.boxplot(data)
     plt.xticks(fake_x, BIT_SIZES)
-    plt.plot(fake_x, data_means, label="Actual", c='c')
-    plt.plot(fake_x, preds, label=f"Prediction {best_str}", c='m')
+    plt.plot(fake_x, data_means, label="Mean Iterations", c='c')
+    plt.plot(fake_x, preds, label=f"Best-Fit {best_str}", c='m')
     plt.legend()
     plt.savefig(f"{attack_type.lower()}.png", dpi=300)
 
