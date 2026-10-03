@@ -1,11 +1,14 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 
 BIT_SIZES = range(8, 24, 2)
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(FILE_PATH, "cache")
+EXPECTED_COLLISION_ITERATIONS = [math.sqrt(math.pi / 2 * (1 << bit_size)) for bit_size in BIT_SIZES]
+EXPECTED_PREIMAGE_ITERATIONS = [1 << bit_size for bit_size in BIT_SIZES]
 
 
 def verify_context():
@@ -64,6 +67,7 @@ def make_graph(data, attack_type):
     plt.xticks(fake_x, BIT_SIZES)
     plt.plot(fake_x, data_means, label="Mean Iterations", c='c')
     plt.plot(fake_x, preds, label=f"Best-Fit {best_str}", c='m')
+    plt.plot(fake_x, EXPECTED_COLLISION_ITERATIONS if attack_type == "Collision" else EXPECTED_PREIMAGE_ITERATIONS, label="Expected Iterations", c='r')
     plt.legend()
     plt.savefig(f"{attack_type.lower()}.png", dpi=300)
 
