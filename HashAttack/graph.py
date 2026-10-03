@@ -7,8 +7,16 @@ import math
 BIT_SIZES = range(8, 24, 2)
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(FILE_PATH, "cache")
-EXPECTED_COLLISION_ITERATIONS = [math.sqrt(math.pi / 2 * (1 << bit_size)) for bit_size in BIT_SIZES]
-EXPECTED_PREIMAGE_ITERATIONS = [1 << bit_size for bit_size in BIT_SIZES]
+
+# slope, y-offset
+ECI_PARAMS = [math.log(2) / 2, math.log(math.pi / 2) / 2]
+EPI_PARAMS = [math.log(2), 0]
+ECI_LOGS = [ECI_PARAMS[0]*bit_size + ECI_PARAMS[1] for bit_size in BIT_SIZES]
+EPI_LOGS = [EPI_PARAMS[0]*bit_size + EPI_PARAMS[1] for bit_size in BIT_SIZES]
+ECI_VALS = np.exp(ECI_LOGS)
+EPI_VALS = np.exp(EPI_LOGS)
+ECI_STR = f"{math.exp(ECI_PARAMS[1]):.3f}e^({ECI_PARAMS[0]:.3f}x)"
+EPI_STR = f"{math.exp(EPI_PARAMS[1]):.3f}e^({EPI_PARAMS[0]:.3f}x)"
 
 
 def verify_context():
@@ -67,7 +75,9 @@ def make_graph(data, attack_type):
     plt.xticks(fake_x, BIT_SIZES)
     plt.plot(fake_x, data_means, label="Mean Iterations", c='c')
     plt.plot(fake_x, preds, label=f"Best-Fit {best_str}", c='m')
-    plt.plot(fake_x, EXPECTED_COLLISION_ITERATIONS if attack_type == "Collision" else EXPECTED_PREIMAGE_ITERATIONS, label="Expected Iterations", c='r')
+    expected_vals = ECI_VALS if attack_type == "Collision" else EPI_VALS
+    expected_str = ECI_STR if attack_type == "Collision" else EPI_STR
+    plt.plot(fake_x, expected_vals, label=f"Expected Iterations {expected_str}", c='r')
     plt.legend()
     plt.savefig(f"{attack_type.lower()}.png", dpi=300)
 
