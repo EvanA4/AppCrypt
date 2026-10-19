@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathUtils", "MathUtils\Math
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsymmetricCryptography", "AsymmetricCryptography\AsymmetricCryptography.csproj", "{F2D9C65B-22E4-4874-B6C2-3327FDDBCF98}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MACAttack", "MACAttack\MACAttack.csproj", "{F2D9C65B-22E4-4874-B6C2-3327FDDBCF98}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
