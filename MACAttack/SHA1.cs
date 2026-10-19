@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace MACAttack;
 
 /// <summary>
@@ -38,7 +40,13 @@ public static class SHA1 {
     /// <paramref name="dataLengthBytes"/> bytes.
     /// </summary>
     internal static byte[] ComputePadding(long dataLengthBytes) {
-        throw new NotImplementedException();
+        bool shouldExtend = dataLengthBytes % 64 >= 56;
+        byte[] output = new byte[shouldExtend ? 64 + (64 - dataLengthBytes % 64) : 64];
+        output[0] = 0x80;
+        byte[] lengthBytes = BitConverter.GetBytes(dataLengthBytes * 8);
+        for (int i = 0; i < 8; ++i)
+            output[output.Length - 1 - i] = lengthBytes[i];
+        return output;
     }
 
     /// <summary>
@@ -47,6 +55,7 @@ public static class SHA1 {
     /// length is a whole multiple of <see cref="BlockSizeBytes"/>.
     /// </summary>
     internal static byte[] ApplyPadding(byte[] data) {
+        // byte[] output = 
         throw new NotImplementedException();
     }
 

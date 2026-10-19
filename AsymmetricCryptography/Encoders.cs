@@ -9,7 +9,6 @@ namespace AsymmetricCryptography;
 /// and concatenating the digests.
 /// </summary>
 internal static class MGF1 {
-
     /// <summary>
     /// Fills <paramref name="mask"/> with MGF1 output derived from <paramref name="seed"/>.
     /// </summary>
