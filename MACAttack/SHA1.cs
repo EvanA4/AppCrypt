@@ -12,6 +12,9 @@ public static class SHA1 {
     /// <summary>SHA1 block size in bytes.</summary>
     public const int BlockSizeBytes = 64;
 
+    /// <summary>SHA1 block size in words.</summary>
+    public const int BlockSizeWords = 16;
+
     /// <summary>SHA1 digest size in bytes.</summary>
     public const int DigestSizeBytes = 20;
 
@@ -25,92 +28,27 @@ public static class SHA1 {
 
     #region Operations
 
-    public static byte[] ROTL(byte[] x, int n)
+    public static uint ROTL(uint x, int n)
     {
-        int wholeBytes = n / 8 % WordSizeBytes;
-        int subByte = n % 8;
-
-        // Rotate whole bytes
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[(i + wholeBytes) % WordSizeBytes] = x[i];
-        if (subByte == 0) return output;
-
-        // Rotate to make bits higher order
-        byte tmp = (byte) ((output[0] >> (8 - subByte)) & 0xFF);
-        for (int i = 0; i < WordSizeBytes; ++i)
-        {
-            output[i] <<= subByte;
-            if (i != WordSizeBytes - 1) output[i] |= (byte) ((output[i+1] >> (8 - subByte)) & 0xFF);
-            else output[i] |= tmp;
-        }
-
-        return output;
+        return System.Numerics.BitOperations.RotateLeft(x, n);;
     }
 
-    public static byte[] ROTR(int n, byte[] x)
+    public static uint Ch(uint x, uint y, uint z)
     {
-        return ROTL(x, WordSizeBytes * 8 - n);
+        return (x & y) ^ (~x & z);
     }
 
-    public static byte[] AddWords(byte[] a, byte[] b)
+    public static uint Parity(uint x, uint y, uint z)
     {
-        byte[] output = new byte[WordSizeBytes];
-
-        int carry = 0;
-        for (int i = WordSizeBytes - 1; i >= 0; i--)
-        {
-            int sum = a[i] + b[i] + carry;
-            output[i] = (byte) sum;
-            carry = sum >> 8;
-        }
-
-        return output;
+        return x ^ y ^ z;
     }
 
-    public static byte[] NotWord(byte[] w)
+    public static uint Maj(uint x, uint y, uint z)
     {
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[i] = (byte) (~w[i] & 0xFF);
-        return output;
+        return (x & y) ^ (x & z) ^ (y & z);
     }
 
-    public static byte[] XORWords(byte[] a, byte[] b)
-    {
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[i] = (byte) ((a[i] ^ b[i]) & 0xFF);
-        return output;
-    }
-
-    public static byte[] AndWords(byte[] a, byte[] b)
-    {
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[i] = (byte) (a[i] & b[i] & 0xFF);
-        return output;
-    }
-
-    public static byte[] OrWords(byte[] a, byte[] b)
-    {
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[i] = (byte) ((a[i] | b[i]) & 0xFF);
-        return output;
-    }
-
-    public static byte[] Ch(byte[] x, byte[] y, byte[] z)
-    {
-        return XORWords(AndWords(x, y), AndWords(NotWord(x), z));
-    }
-
-    public static byte[] Parity(byte[] x, byte[] y, byte[] z)
-    {
-        return XORWords(XORWords(x, y), z);
-    }
-
-    public static byte[] Maj(byte[] x, byte[] y, byte[] z)
-    {
-        return XORWords(XORWords(AndWords(x, y), AndWords(x, z)), AndWords(y, z));
-    }
-
-    public static byte[] F(int t, byte[] x, byte[] y, byte[] z)
+    public static uint F(int t, uint x, uint y, uint z)
     {
         if (t >= 0 && t <= 19) return Ch(x, y, z);
         if (t >= 20 && t <= 39) return Parity(x, y, z);
@@ -118,46 +56,70 @@ public static class SHA1 {
         return Parity(x, y, z);
     }
 
-    public static byte[] GetWord(byte[] buffer, int wordIdx)
+    public static uint[] ToInts(byte[] bytes)
     {
-        byte[] output = new byte[WordSizeBytes];
-        for (int i = 0; i < WordSizeBytes; ++i) output[i] = buffer[wordIdx * WordSizeBytes + i];
-        return output;
-    }
+        uint[] output = new uint[bytes.Length / WordSizeBytes];
 
-    public static byte[] MessageSchedule(int i, byte[] paddedData)
-    {
-        byte[] output = new byte[80 * WordSizeBytes];
-
-        for (int j = 0; j < BlockSizeBytes; ++j) output[j] = paddedData[i * BlockSizeBytes + j];
-        for (int j = 16; j < 80; ++j)
+        for (int i = 0; i < output.Length; i++)
         {
-            byte[] m3 = GetWord(output, j - 3);
-            byte[] m8 = GetWord(output, j - 8);
-            byte[] m14 = GetWord(output, j - 14);
-            byte[] m16 = GetWord(output, j - 16);
-            byte[] tmp = ROTL(XORWords(XORWords(XORWords(m3, m8), m14), m16), 1);            
-            for (int k = 0; k < WordSizeBytes; ++k) output[j * WordSizeBytes + k] = tmp[k];
+            uint num = 0;
+            for (int j = 0; j < WordSizeBytes; j++)
+            {
+                num = (num << 8) | bytes[i * WordSizeBytes + j];
+            }
+            output[i] = num;
         }
 
         return output;
     }
 
-    public static byte[] ToWords(uint[] nums)
+    public static byte[] ToBytes(uint[] words)
     {
-        var output = new byte[nums.Length * WordSizeBytes];
+        byte[] output = new byte[words.Length * WordSizeBytes];
 
-        for (int i = 0; i < nums.Length; i++)
+        for (int i = 0; i < words.Length; i++)
         {
-            uint num = nums[i];
+            uint word = words[i];
             for (int j = 0; j < WordSizeBytes; ++j)
             {
                 output[i * WordSizeBytes + j] =
-                    (byte) (num >> ((WordSizeBytes - 1 - j) * 8));
+                    (byte) (word >> ((WordSizeBytes - 1 - j) * 8));
             }
         }
 
         return output;
+    }
+
+    public static uint GetWord(byte[] buffer, int wordIdx)
+    {
+        byte[] output = new byte[WordSizeBytes];
+        for (int i = 0; i < WordSizeBytes; ++i) output[i] = buffer[wordIdx * WordSizeBytes + i];
+        return ToInts(output)[0];
+    }
+
+    public static uint[] MessageSchedule(int i, byte[] paddedData)
+    {
+        uint[] output = new uint[80];
+
+        for (int j = 0; j < BlockSizeWords; ++j) output[j] = GetWord(paddedData, i * BlockSizeWords + j);
+        for (int j = 16; j < 80; ++j)
+        {
+            uint m3 = output[j-3];
+            uint m8 = output[j-8];
+            uint m14 = output[j-14];
+            uint m16 = output[j-16];
+            output[j] = ROTL(m3 ^ m8 ^ m14 ^ m16, 1);
+        }
+
+        return output;
+    }
+
+    public static uint GetK(int t)
+    {
+        if (t >= 0 && t <= 19) return 0x5a827999;
+        if (t >= 20 && t <= 39) return 0x6ed9eba1;
+        if (t >= 40 && t <= 59) return 0x8f1bbcdc;
+        else return 0xca62c1d6;
     }
 
     /// <summary>
@@ -166,7 +128,10 @@ public static class SHA1 {
     /// <param name="data">Data to hash</param>
     /// <returns>The digest of the passed data.</returns>
     public static byte[] ComputeHash(byte[] data) {
-        throw new NotImplementedException();
+        byte[] paddedData = ApplyPadding(data);
+        uint[] state = (uint[]) InitialHash.Clone();
+        ProcessData(state, paddedData);
+        return ToBytes(state);
     }
 
     #endregion
@@ -209,8 +174,34 @@ public static class SHA1 {
     /// Applies the hashing algorithm to the padded data.
     /// </summary>
     internal static void ProcessData(uint[] state, byte[] paddedData) {
-        byte[] stateBytes = ToWords(state);
-        byte[] a = GetWord(stateBytes, 0);
+        int N = paddedData.Length / BlockSizeBytes;
+
+        for (int i = 0; i < N; ++i)
+        {
+            uint[] messageSchedule = MessageSchedule(i, paddedData);
+            uint a = state[0];
+            uint b = state[1];
+            uint c = state[2];
+            uint d = state[3];
+            uint e = state[4];
+            uint T;
+
+            for (int t = 0; t < 80; ++t)
+            {
+                T = ROTL(a, 5) + F(t, b, c, d) + e + GetK(t) + messageSchedule[t];
+                e = d;
+                d = c;
+                c = ROTL(b, 30);
+                b = a;
+                a = T;
+            }
+
+            state[0] += a;
+            state[1] += b;
+            state[2] += c;
+            state[3] += d;
+            state[4] += e;
+        }
     }
 
     #endregion

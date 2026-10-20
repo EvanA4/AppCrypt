@@ -31,7 +31,30 @@ public static class LengthExtensionAttack {
     /// <returns>The forged (message, MAC) pair.</returns>
     public static LengthExtensionResult Extend(
         byte[] originalMessage, byte[] originalMac, byte[] extension, int keyLengthBytes) {
-        throw new NotImplementedException();
+        
+        if (keyLengthBytes < 0) throw new ArgumentOutOfRangeException();
+        if (originalMac.Length != 20) throw new ArgumentException();
+
+        // compute next MAC
+        byte[] originalPadding = SHA1.ComputePadding(keyLengthBytes + originalMessage.Length);
+        byte[] padding = SHA1.ComputePadding(keyLengthBytes + originalMessage.Length + originalPadding.Length + extension.Length);
+
+        byte[] sum = new byte[extension.Length + padding.Length];
+        for (int i = 0; i < extension.Length; ++i) sum[i] = extension[i];
+        for (int i = 0; i < padding.Length; ++i) sum[extension.Length + i] = padding[i];
+
+        uint[] originalMacInts = SHA1.ToInts(originalMac);
+        SHA1.ProcessData(originalMacInts, sum);
+        byte[] newMac = SHA1.ToBytes(originalMacInts);
+
+        // compute verified message
+        byte[] newMessage = new byte[originalMessage.Length + originalPadding.Length + extension.Length];
+        for (int i = 0; i < originalMessage.Length; ++i) newMessage[i] = originalMessage[i];
+        for (int i = 0; i < originalPadding.Length; ++i) newMessage[i + originalMessage.Length] = originalPadding[i];
+        for (int i = 0; i < extension.Length; ++i) newMessage[i + originalMessage.Length + originalPadding.Length] = extension[i];
+
+        // return result
+        return new LengthExtensionResult(newMessage, newMac);
     }
 
 }
